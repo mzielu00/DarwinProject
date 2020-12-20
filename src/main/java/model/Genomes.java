@@ -1,27 +1,26 @@
 package model;
 
-import java.util.Arrays;
-import java.util.Random;
+import java.util.*;
 
 public class Genomes {
     private final int geneOptions = Direction.values().length;
     private final int geneSize = geneOptions * 4;
 
-    private final int [] gene;
+    private final List<Integer> gene;
     private final Random random = new Random();
 
     //ten konstruktor używamy jak chcemy randomowe geny
     public Genomes ()
     {
-        gene = new int[geneSize];
+        gene = new ArrayList<>();
         initGenomes();
     }
 
     //tego konstruktora użyjemy jak bedziemy rodzić dziecko z już konkretnymi
-    public Genomes (int[] newGene)
+    public Genomes (List<Integer> newGene)
     {
-        gene = newGene;
-        Arrays.sort(gene);
+        this.gene = newGene;
+        Collections.sort(this.gene);
     }
 
     void initGenomes()
@@ -29,13 +28,17 @@ public class Genomes {
         for (int i = 0; i < geneSize; i++)
         {
             int rand = random.nextInt(geneOptions);
-            gene[i] = rand;
+            gene.add(rand);
         }
-        Arrays.sort(gene);
+        Collections.sort(gene);
+    }
+    public List<Integer> getGenes()
+    {
+        return gene;
     }
 
     public Direction randomDirection()
     {
-        return Direction.values()[gene[random.nextInt(geneSize)]];
+        return Direction.values()[gene.get(random.nextInt(geneSize))];
     }
 }

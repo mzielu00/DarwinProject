@@ -24,8 +24,8 @@ public class MainGui {
     private static final int JUNGLE_WIDTH = 10;
     private static final int JUNGLE_HEIGHT = 10;
 
-    private static final int ANIMALS_NUMBER = 80;
-    private static final int ANIMAL_STARTING_ENERGY = 80;
+    private static final int ANIMALS_NUMBER = 50;
+    private static final int ANIMAL_STARTING_ENERGY = 50;
     private static final int PLANT_ENERGY = 80;
 
     private Simulation simulation;

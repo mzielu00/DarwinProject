@@ -35,4 +35,7 @@ public class Animal {
     {
         return genome;
     }
+    public void dropEnergy() {
+        energy = (int) (energy * 0.75);
+    }
 }
