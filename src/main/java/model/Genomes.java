@@ -9,14 +9,12 @@ public class Genomes {
     private final List<Integer> gene;
     private final Random random = new Random();
 
-    //ten konstruktor używamy jak chcemy randomowe geny
     public Genomes ()
     {
         gene = new ArrayList<>();
         initGenomes();
     }
 
-    //tego konstruktora użyjemy jak bedziemy rodzić dziecko z już konkretnymi
     public Genomes (List<Integer> newGene)
     {
         this.gene = newGene;

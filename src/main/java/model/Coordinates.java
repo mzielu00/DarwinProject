@@ -25,6 +25,27 @@ public class Coordinates {
         return new Coordinates(getX() + otherCoordinates.getX(), getY() + otherCoordinates.getY());
     }
 
+    public Coordinates convertIfWrongValues(int mapWidth, int mapHeight) {
+        if (getX() < 0) {
+            x = x + mapWidth;
+        }
+
+        if (getX() > mapWidth - 1) {
+            x = x - mapWidth;
+        }
+
+        if (getY() < 0) {
+            y = y + mapHeight;
+        }
+
+        if (getY() > mapHeight - 1) {
+            y = y - mapHeight;
+        }
+
+        return this;
+    }
+
+
     @Override
     public boolean equals(Object o)
     {

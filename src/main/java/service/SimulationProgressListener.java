@@ -7,5 +7,5 @@ import java.util.List;
 
 public interface SimulationProgressListener
 {
-    void update(List<Animal> animals, List<Plant> plants);
+    void update(List<Animal> animals, List<Plant> plants, int day);
 }

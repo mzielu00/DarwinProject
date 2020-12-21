@@ -4,7 +4,9 @@ import mapper.DirectionToCoordinatesMapper;
 import model.*;
 import ui.MapComponent;
 
+import java.awt.*;
 import java.util.*;
+import java.util.List;
 import java.util.stream.Collectors;
 
 public class Simulation {
@@ -12,10 +14,11 @@ public class Simulation {
     private SimulationProgressListener simulationProgressListener;
     private final Random random = new Random();
     private final DirectionToCoordinatesMapper directionToCoordinatesMapper;
+    private final BreedManager breedManager;
 
     private final int jungleWidth;
     private final int jungleHeight;
-    private final Coordinates jungleStart;
+
 
     private final int mapWidth;
     private final int mapHeight;
@@ -24,15 +27,16 @@ public class Simulation {
     private final int animalsStartingEnergy;
 
     private final int plantEnergy;
+    private final int dayEnergyCost;
 
-    List<Animal> animalsList = new ArrayList<>();
-    List<Plant> plantsList = new ArrayList<>();
 
-    public Simulation(int mapWidth, int mapHeight, int jungleWidth, int jungleHeight, int animalsNumber, int animalsStartingEnergy, int plantEnergy)
+    private List<Animal> animalsList = new ArrayList<>();
+    private List<Plant> plantsList = new ArrayList<>();
+
+    public Simulation(int mapWidth, int mapHeight, int jungleWidth, int jungleHeight, int animalsNumber, int animalsStartingEnergy, int plantEnergy, int dayEnergyCost)
     {
         this.jungleHeight = jungleHeight;
         this.jungleWidth = jungleWidth;
-        jungleStart = new Coordinates((mapWidth - jungleWidth) / 2, (mapHeight - jungleHeight) / 2);
 
         this.mapHeight = mapHeight;
         this.mapWidth = mapWidth;
@@ -41,8 +45,10 @@ public class Simulation {
         this.animalsStartingEnergy = animalsStartingEnergy;
 
         this.plantEnergy = plantEnergy;
+        this.dayEnergyCost = dayEnergyCost;
 
         directionToCoordinatesMapper = new DirectionToCoordinatesMapper();
+        breedManager = new BreedManager();
     }
 
     public void init()
@@ -52,30 +58,30 @@ public class Simulation {
         {
             animalsList.add(new Animal(coordinatesWithinMap(), animalsStartingEnergy, new Genomes()));
         }
-
+        int day = 1;
         while (!animalsList.isEmpty())
         {
             if (inProgress)
             {
-                EmptyCoordinates emptyCoordinates =
-                        new EmptyCoordinates(mapWidth, mapHeight, jungleWidth, jungleHeight,
+                EmptyCoordinatesOnMap emptyCoordinatesOnMap =
+                        new EmptyCoordinatesOnMap(mapWidth, mapHeight, jungleWidth, jungleHeight,
                                 animalsList.stream().map(Animal::getCoordinates).collect(Collectors.toList()),
                                 plantsList.stream().map(Plant::getCoordinates).collect(Collectors.toList()));
 
                 //nowa roślina w dżungli
-                int junglePossiblePlants = emptyCoordinates.getJungleCoordinates().size();
+                int junglePossiblePlants = emptyCoordinatesOnMap.getJungleCoordinates().size();
                 if (junglePossiblePlants > 0) {
-                    Coordinates newCoordinates = emptyCoordinates.getJungleCoordinates().get(random.nextInt(junglePossiblePlants));
+                    Coordinates newCoordinates = emptyCoordinatesOnMap.getJungleCoordinates().get(random.nextInt(junglePossiblePlants));
                     plantsList.add(new Plant(newCoordinates, plantEnergy));
-                    emptyCoordinates.removeFromEmpty(newCoordinates);
+                    emptyCoordinatesOnMap.removeFromEmpty(newCoordinates);
                 }
 
                 //nowa roślina na mapie
-                int nonJunglePossiblePlants = emptyCoordinates.getNotJungleCoordinates().size();
+                int nonJunglePossiblePlants = emptyCoordinatesOnMap.getNotJungleCoordinates().size();
                 if (nonJunglePossiblePlants > 0) {
-                    Coordinates newCoordinates = emptyCoordinates.getNotJungleCoordinates().get(random.nextInt(nonJunglePossiblePlants));
+                    Coordinates newCoordinates = emptyCoordinatesOnMap.getNotJungleCoordinates().get(random.nextInt(nonJunglePossiblePlants));
                     plantsList.add(new Plant(newCoordinates, plantEnergy));
-                    emptyCoordinates.removeFromEmpty(newCoordinates);
+                    emptyCoordinatesOnMap.removeFromEmpty(newCoordinates);
                 }
 
                 //ruszanie zwierzętami
@@ -90,15 +96,14 @@ public class Simulation {
                     eatPlant(plant);
                 }
 
-                //rozmnażanie po kazdym miejscu biore top2 animalsow i potem sort
-                breeding();
+                breed(emptyCoordinatesOnMap);
 
-                //wywalanie zwierząt z 0 energią
+                //usuniecie zwierząt z 0 energią
                 animalsList = animalsList.stream().filter(animal -> animal.getEnergy() > 0).collect(Collectors.toList());
-                //wywalanie roślin z 0 energią
+                //usuniecie zjedzonych roślin (z 0 energią)
                 plantsList = plantsList.stream().filter(plant -> plant.getEnergy() > 0).collect(Collectors.toList());
-
-                simulationProgressListener.update(animalsList, plantsList);
+                simulationProgressListener.update(animalsList, plantsList, day );
+                day++;
             }
 
             try
@@ -126,78 +131,20 @@ public class Simulation {
         simulationProgressListener = listener;
     }
 
-    private Coordinates coordinatesWithinJungle()
-    {
-        int Xcoord = jungleStart.getX() + random.nextInt(jungleWidth);
-        int Ycoord = jungleStart.getY() + random.nextInt(jungleHeight);
-
-        while(!isOccupied(new Coordinates(Xcoord, Ycoord)))
-        {
-            Xcoord = jungleStart.getX() + random.nextInt(jungleWidth);
-            Ycoord = jungleStart.getY() + random.nextInt(jungleHeight);
-        }
-        return new Coordinates(Xcoord, Ycoord);
-    }
 
     private Coordinates coordinatesWithinMap()
     {
-        int Xcoord = random.nextInt(50);
-        boolean stepXcoord = false;
-        int Ycoord = random.nextInt(50);
-        boolean stepYcoord = false;
-        while (!(stepXcoord && stepYcoord && isOccupied(new Coordinates(Xcoord, Ycoord))))
-        {
-            if (Xcoord >= jungleStart.getX() && Xcoord < (jungleStart.getX() + jungleWidth +1) && Ycoord >= jungleStart.getY() && Ycoord < (jungleStart.getX() + jungleHeight +1))
-            {
-                stepXcoord = false;
-                stepYcoord = false;
-                Xcoord = random.nextInt(50);
-                Ycoord = random.nextInt(50);
-            }
-            else
-            {
-                stepXcoord = true;
-                stepYcoord = true;
-            }
-        }
         return new Coordinates(random.nextInt(mapWidth), random.nextInt(mapHeight));
     }
-    public boolean isOccupied(Coordinates position)
-    {
-        for (Plant i : plantsList)
-        {
-            if (position.equals(i.getCoordinates()))
-            {
-                return false;
-            }
-        }
-        for (Animal i : animalsList)
-        {
-            if (position.equals(i.getCoordinates()))
-            {
-                return false;
-            }
-        }
-        return true;
-    }
+
 
     private void moveAnimal(Animal animal)
     {
-        Coordinates moveCoordinates = directionToCoordinatesMapper.map(animal.getGenome().randomDirection());
-        Coordinates newCoordinates = animal.getCoordinates().addCoordinates(moveCoordinates);
-        int newXCoord = newCoordinates.getX()%mapWidth;
-        int newYCoord = newCoordinates.getY()%mapHeight;
-        if(newXCoord < 0)
-        {
-            newXCoord += mapWidth;
+        Coordinates newPlace = directionToCoordinatesMapper.map(animal.getCoordinates(), animal.getGenome().randomDirection()).convertIfWrongValues(mapWidth, mapHeight);;
+        if (newPlace.getX() >= 0 && newPlace.getY() >= 0 && newPlace.getX() < mapWidth && newPlace.getY() < mapHeight) {
+            animal.setNewCoordinates(newPlace);
         }
-        if(newYCoord < 0)
-        {
-            newYCoord += mapHeight;
-        }
-        Coordinates finalCoordinates = new Coordinates(newXCoord, newYCoord);
-        animal.setNewCoordinates(finalCoordinates);
-        animal.setEnergy(animal.getEnergy() - 1);
+        animal.setEnergy(animal.getEnergy() - dayEnergyCost);
     }
 
     private void eatPlant(Plant plant)
@@ -225,7 +172,7 @@ public class Simulation {
         }
     }
 
-    private void breeding()
+    private void breed(EmptyCoordinatesOnMap emptyCoordinatesOnMap)
     {
         HashMap<Coordinates, List<Animal>> map = new HashMap<>();
 
@@ -241,76 +188,12 @@ public class Simulation {
         }
 
         for (Map.Entry<Coordinates, List<Animal>> entry : map.entrySet()) {
-            List<Animal> animals = entry.getValue();
+            List<Animal> animals = entry.getValue().stream().filter(animal -> animal.getEnergy() > animalsStartingEnergy / 2).collect(Collectors.toList());
             if (animals.size() >= 2) {
                 animals.sort((Animal a1, Animal a2) -> a2.getEnergy() - a1.getEnergy());
-                childGenom(animals.get(0), animals.get(1));
+                Animal child = breedManager.childGenom(animals.get(0), animals.get(1), emptyCoordinatesOnMap);
+                animalsList.add(child);
             }
         }
-    }
-    private void childGenom(Animal parent1, Animal parent2)
-    {
-        int idx1 = random.nextInt(32);
-        int idx2 = random.nextInt(32);
-        while(idx1 == idx2)
-        {
-            idx1 = random.nextInt(32);
-            idx2 = random.nextInt(32);
-        }
-        List<Integer> idxs = new ArrayList<>();
-        idxs.add(idx1);
-        idxs.add(idx2);
-        Collections.sort(idxs);
-        List<Integer> parent1FirstPart = parent1.getGenome().getGenes().subList(0, idxs.get(0)+1);
-        List<Integer> parent1SecondPart = parent1.getGenome().getGenes().subList(idxs.get(0)+1, idxs.get(1)+1);
-        List<Integer> parent1ThirdPart = parent1.getGenome().getGenes().subList(idxs.get(1)+1, parent1.getGenome().getGenes().size());
-
-        List<Integer> parent2FirstPart = parent2.getGenome().getGenes().subList(0, idxs.get(0)+1);
-        List<Integer> parent2SecondPart = parent2.getGenome().getGenes().subList(idxs.get(0)+1, idxs.get(1)+1);
-        List<Integer> parent2ThirdPart = parent2.getGenome().getGenes().subList(idxs.get(1)+1, parent2.getGenome().getGenes().size());
-        random.nextBoolean();
-        List<Integer> childGenom = new ArrayList<>();
-        if(random.nextBoolean())
-        {
-            childGenom.addAll(parent1FirstPart);
-            if(random.nextBoolean())
-            {
-                childGenom.addAll(parent1SecondPart);
-                childGenom.addAll(parent2ThirdPart);
-            }
-            else
-                {
-                    childGenom.addAll(parent2SecondPart);
-                    childGenom.addAll(parent1ThirdPart);
-                }
-        }
-        else
-        {
-            childGenom.addAll(parent2FirstPart);
-            if(random.nextBoolean())
-            {
-                childGenom.addAll(parent1SecondPart);
-                childGenom.addAll(parent2ThirdPart);
-            }
-            else
-            {
-                childGenom.addAll(parent2SecondPart);
-                childGenom.addAll(parent1ThirdPart);
-            }
-        }
-        int newEnergy = (parent1.getEnergy() + parent2.getEnergy()) / 4;
-        parent1.dropEnergy();
-        parent2.dropEnergy();
-        Genomes childGenomes = new Genomes(childGenom);
-        Coordinates childMoveCoordinates = directionToCoordinatesMapper.map(childGenomes.randomDirection());
-        Coordinates finalChildCoordinates = parent1.getCoordinates().addCoordinates(childMoveCoordinates);
-        fixGenom(childGenomes);
-
-        Animal child = new Animal(finalChildCoordinates, newEnergy, childGenomes);
-        animalsList.add(child);
-    }
-    private void fixGenom(Genomes childGenomes)
-    {
-
     }
 }

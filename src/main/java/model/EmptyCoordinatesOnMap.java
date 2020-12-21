@@ -2,11 +2,16 @@ package model;
 
 import java.util.ArrayList;
 import java.util.List;
+import mapper.DirectionToCoordinatesMapper;
+import java.util.Arrays;
+import java.util.stream.Collectors;
 
-public class EmptyCoordinates
+
+public class EmptyCoordinatesOnMap
 {
     private List<Coordinates> jungleCoordinates = new ArrayList<>();
     private List<Coordinates> notJungleCoordinates = new ArrayList<>();
+    private DirectionToCoordinatesMapper directionToCoordinatesMapper = new DirectionToCoordinatesMapper();
 
     private final int jungleWidth;
     private final int jungleHeight;
@@ -16,7 +21,7 @@ public class EmptyCoordinates
     private final List<Coordinates> animalCoordinates;
     private final List<Coordinates> plantCoordinates;
 
-    public EmptyCoordinates(int mapWidth, int mapHeight, int jungleWidth, int jungleHeight, List<Coordinates> animalCoordinates, List<Coordinates> plantCoordinates)
+    public EmptyCoordinatesOnMap(int mapWidth, int mapHeight, int jungleWidth, int jungleHeight, List<Coordinates> animalCoordinates, List<Coordinates> plantCoordinates)
     {
         this.jungleHeight = jungleHeight;
         this.jungleWidth = jungleWidth;
@@ -111,5 +116,17 @@ public class EmptyCoordinates
 
     public List<Coordinates> getNotJungleCoordinates() {
         return notJungleCoordinates;
+    }
+
+    public List<Coordinates> emptyAroundCoordinate(Coordinates coordinates) {
+        List<Coordinates> emptyAroundList = new ArrayList<>();
+
+        for (Direction direction : Arrays.stream(Direction.values()).sequential().collect(Collectors.toList())) {
+            Coordinates newPlace = directionToCoordinatesMapper.map(coordinates, direction).convertIfWrongValues(mapWidth, mapHeight);
+            if (!isOccupied(newPlace)) {
+                emptyAroundList.add(newPlace);
+            }
+        }
+        return emptyAroundList;
     }
 }

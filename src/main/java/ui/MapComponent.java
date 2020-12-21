@@ -16,11 +16,11 @@ public class MapComponent extends JComponent
     private final int fieldSize;
 
     private static final Color PLANT_COLOR = new Color(35, 161, 20);
-    private static final Color ANIMAL_COLOR = new Color(85, 18, 18);
+    private static Color ANIMAL_COLOR = new Color(255, 0, 0);
     private static final Color OUTSIDE_COLOR = new Color(172, 145, 35);
     private static final Color JUNGLE_COLOR = new Color(187, 93, 9);
 
-    private final int mapWidth;
+    public final int mapWidth;
     private final int mapHeight;
     private final int jungleWidth;
     private final int jungleHeight;
@@ -60,9 +60,14 @@ public class MapComponent extends JComponent
         g.setColor(JUNGLE_COLOR);
         g.fillRect(jungleStartCoordinates.getX() * fieldSize, jungleStartCoordinates.getY() * fieldSize, jungleWidth * fieldSize, jungleHeight * fieldSize);
 
-        g.setColor(ANIMAL_COLOR);
+
         for (Animal animal : animals)
         {
+            int r = 255 - animal.getEnergy();
+            if (r < 0)
+                r = 0;
+            ANIMAL_COLOR = new Color (r, 0, 0);
+            g.setColor(ANIMAL_COLOR);
             g.fillRoundRect(
                     animal.getCoordinates().getX() * fieldSize,
                     animal.getCoordinates().getY() * fieldSize,
@@ -76,6 +81,7 @@ public class MapComponent extends JComponent
         g.setColor(PLANT_COLOR);
         for (Plant plant : plants)
         {
+
             g.fillRoundRect(
                     plant.getCoordinates().getX() * fieldSize,
                     plant.getCoordinates().getY() * fieldSize,

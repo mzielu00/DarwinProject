@@ -19,4 +19,7 @@ public class DirectionToCoordinatesMapper
             case NORTHEAST -> new Coordinates(-1, 1);
         };
     }
+    public Coordinates map(Coordinates coordinates, Direction direction) {
+        return coordinates.addCoordinates(map(direction));
+    }
 }
